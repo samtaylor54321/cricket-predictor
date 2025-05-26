@@ -1,0 +1,12 @@
+requests==2.32.3
+beautifulsoup4==4.13.4
+pandas==2.2.3
+numpy==2.2.6
+optuna==4.3.0
+scikit-learn==1.6.1
+python-dotenv==1.1.0
+ruff==0.11.11
+pytest==8.3.5
+isort==6.0.1
+matplotlib==3.10.3
+seaborn==0.13.2
