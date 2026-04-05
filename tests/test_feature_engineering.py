@@ -13,105 +13,183 @@ import pytest
 
 from src.feature_engineering import (
     EloTracker,
+    build_features,
     build_player_averages,
     build_team_form,
     build_venue_stats,
-    build_features,
     compute_xi_strength,
     run,
 )
-
 
 # ─────────────────────────────────────────────
 # FIXTURES
 # ─────────────────────────────────────────────
 
+
 @pytest.fixture
 def simple_matches():
     """Four decisive matches across two seasons."""
-    return pd.DataFrame([
-        {
-            "match_id": "m001", "match_date": "2022-04-10", "season": "2022",
-            "division": 1, "venue": "Old Trafford",
-            "home_team": "Lancashire", "away_team": "Surrey",
-            "result_type": "decisive", "winner": "Lancashire", "home_win": 1,
-            "home_won_toss": 1, "toss_decision": "bat",
-            "home_players": "P1|P2|P3|P4|P5|P6|P7|P8|P9|P10|P11",
-            "away_players": "P12|P13|P14|P15|P16|P17|P18|P19|P20|P21|P22",
-            "home_player_ids": "id1|id2|id3|id4|id5|id6|id7|id8|id9|id10|id11",
-            "away_player_ids": "id12|id13|id14|id15|id16|id17|id18|id19|id20|id21|id22",
-        },
-        {
-            "match_id": "m002", "match_date": "2022-04-17", "season": "2022",
-            "division": 1, "venue": "The Oval",
-            "home_team": "Surrey", "away_team": "Lancashire",
-            "result_type": "decisive", "winner": "Surrey", "home_win": 1,
-            "home_won_toss": 0, "toss_decision": "field",
-            "home_players": "P12|P13|P14|P15|P16|P17|P18|P19|P20|P21|P22",
-            "away_players": "P1|P2|P3|P4|P5|P6|P7|P8|P9|P10|P11",
-            "home_player_ids": "id12|id13|id14|id15|id16|id17|id18|id19|id20|id21|id22",
-            "away_player_ids": "id1|id2|id3|id4|id5|id6|id7|id8|id9|id10|id11",
-        },
-        {
-            "match_id": "m003", "match_date": "2022-04-24", "season": "2022",
-            "division": 1, "venue": "Old Trafford",
-            "home_team": "Lancashire", "away_team": "Yorkshire",
-            "result_type": "decisive", "winner": "Yorkshire", "home_win": 0,
-            "home_won_toss": 1, "toss_decision": "bat",
-            "home_players": "P1|P2|P3|P4|P5|P6|P7|P8|P9|P10|P11",
-            "away_players": "P23|P24|P25|P26|P27|P28|P29|P30|P31|P32|P33",
-            "home_player_ids": "id1|id2|id3|id4|id5|id6|id7|id8|id9|id10|id11",
-            "away_player_ids": "id23|id24|id25|id26|id27|id28|id29|id30|id31|id32|id33",
-        },
-        {
-            "match_id": "m004", "match_date": "2022-05-01", "season": "2022",
-            "division": 1, "venue": "Old Trafford",
-            "home_team": "Lancashire", "away_team": "Essex",
-            "result_type": "draw", "winner": None, "home_win": None,
-            "home_won_toss": 0, "toss_decision": "field",
-            "home_players": "P1|P2|P3|P4|P5|P6|P7|P8|P9|P10|P11",
-            "away_players": "P34|P35|P36|P37|P38|P39|P40|P41|P42|P43|P44",
-            "home_player_ids": "id1|id2|id3|id4|id5|id6|id7|id8|id9|id10|id11",
-            "away_player_ids": "id34|id35|id36|id37|id38|id39|id40|id41|id42|id43|id44",
-        },
-    ])
+    return pd.DataFrame(
+        [
+            {
+                "match_id": "m001",
+                "match_date": "2022-04-10",
+                "season": "2022",
+                "division": 1,
+                "venue": "Old Trafford",
+                "home_team": "Lancashire",
+                "away_team": "Surrey",
+                "result_type": "decisive",
+                "winner": "Lancashire",
+                "home_win": 1,
+                "home_won_toss": 1,
+                "toss_decision": "bat",
+                "home_players": "P1|P2|P3|P4|P5|P6|P7|P8|P9|P10|P11",
+                "away_players": "P12|P13|P14|P15|P16|P17|P18|P19|P20|P21|P22",
+                "home_player_ids": "id1|id2|id3|id4|id5|id6|id7|id8|id9|id10|id11",
+                "away_player_ids": "id12|id13|id14|id15|id16|id17|id18|id19|id20|id21|id22",
+            },
+            {
+                "match_id": "m002",
+                "match_date": "2022-04-17",
+                "season": "2022",
+                "division": 1,
+                "venue": "The Oval",
+                "home_team": "Surrey",
+                "away_team": "Lancashire",
+                "result_type": "decisive",
+                "winner": "Surrey",
+                "home_win": 1,
+                "home_won_toss": 0,
+                "toss_decision": "field",
+                "home_players": "P12|P13|P14|P15|P16|P17|P18|P19|P20|P21|P22",
+                "away_players": "P1|P2|P3|P4|P5|P6|P7|P8|P9|P10|P11",
+                "home_player_ids": "id12|id13|id14|id15|id16|id17|id18|id19|id20|id21|id22",
+                "away_player_ids": "id1|id2|id3|id4|id5|id6|id7|id8|id9|id10|id11",
+            },
+            {
+                "match_id": "m003",
+                "match_date": "2022-04-24",
+                "season": "2022",
+                "division": 1,
+                "venue": "Old Trafford",
+                "home_team": "Lancashire",
+                "away_team": "Yorkshire",
+                "result_type": "decisive",
+                "winner": "Yorkshire",
+                "home_win": 0,
+                "home_won_toss": 1,
+                "toss_decision": "bat",
+                "home_players": "P1|P2|P3|P4|P5|P6|P7|P8|P9|P10|P11",
+                "away_players": "P23|P24|P25|P26|P27|P28|P29|P30|P31|P32|P33",
+                "home_player_ids": "id1|id2|id3|id4|id5|id6|id7|id8|id9|id10|id11",
+                "away_player_ids": "id23|id24|id25|id26|id27|id28|id29|id30|id31|id32|id33",
+            },
+            {
+                "match_id": "m004",
+                "match_date": "2022-05-01",
+                "season": "2022",
+                "division": 1,
+                "venue": "Old Trafford",
+                "home_team": "Lancashire",
+                "away_team": "Essex",
+                "result_type": "draw",
+                "winner": None,
+                "home_win": None,
+                "home_won_toss": 0,
+                "toss_decision": "field",
+                "home_players": "P1|P2|P3|P4|P5|P6|P7|P8|P9|P10|P11",
+                "away_players": "P34|P35|P36|P37|P38|P39|P40|P41|P42|P43|P44",
+                "home_player_ids": "id1|id2|id3|id4|id5|id6|id7|id8|id9|id10|id11",
+                "away_player_ids": "id34|id35|id36|id37|id38|id39|id40|id41|id42|id43|id44",
+            },
+        ]
+    )
 
 
 @pytest.fixture
 def simple_players():
     """Minimal player performance rows for two players across matches."""
-    return pd.DataFrame([
-        # id1 bats in m001 innings 1
-        {"match_id": "m001", "innings": 1, "batting_team": "Lancashire",
-         "player_name": "P1", "player_id": "id1",
-         "runs_scored": 45, "balls_faced": 80, "dismissed": True,
-         "wickets_taken": 0, "balls_bowled": 0, "runs_conceded": 0},
-        # id1 bats in m001 innings 3 (follow-on scenario)
-        {"match_id": "m001", "innings": 3, "batting_team": "Lancashire",
-         "player_name": "P1", "player_id": "id1",
-         "runs_scored": 20, "balls_faced": 35, "dismissed": True,
-         "wickets_taken": 0, "balls_bowled": 0, "runs_conceded": 0},
-        # id8 bowls in m001 innings 2
-        {"match_id": "m001", "innings": 2, "batting_team": "Surrey",
-         "player_name": "P8", "player_id": "id8",
-         "runs_scored": 5, "balls_faced": 10, "dismissed": True,
-         "wickets_taken": 3, "balls_bowled": 24, "runs_conceded": 48},
-        # id1 bats in m002 (away match)
-        {"match_id": "m002", "innings": 2, "batting_team": "Lancashire",
-         "player_name": "P1", "player_id": "id1",
-         "runs_scored": 70, "balls_faced": 120, "dismissed": False,
-         "wickets_taken": 0, "balls_bowled": 0, "runs_conceded": 0},
-        # id1 bats in m003
-        {"match_id": "m003", "innings": 1, "batting_team": "Lancashire",
-         "player_name": "P1", "player_id": "id1",
-         "runs_scored": 12, "balls_faced": 25, "dismissed": True,
-         "wickets_taken": 0, "balls_bowled": 0, "runs_conceded": 0},
-    ])
+    return pd.DataFrame(
+        [
+            # id1 bats in m001 innings 1
+            {
+                "match_id": "m001",
+                "innings": 1,
+                "batting_team": "Lancashire",
+                "player_name": "P1",
+                "player_id": "id1",
+                "runs_scored": 45,
+                "balls_faced": 80,
+                "dismissed": True,
+                "wickets_taken": 0,
+                "balls_bowled": 0,
+                "runs_conceded": 0,
+            },
+            # id1 bats in m001 innings 3 (follow-on scenario)
+            {
+                "match_id": "m001",
+                "innings": 3,
+                "batting_team": "Lancashire",
+                "player_name": "P1",
+                "player_id": "id1",
+                "runs_scored": 20,
+                "balls_faced": 35,
+                "dismissed": True,
+                "wickets_taken": 0,
+                "balls_bowled": 0,
+                "runs_conceded": 0,
+            },
+            # id8 bowls in m001 innings 2
+            {
+                "match_id": "m001",
+                "innings": 2,
+                "batting_team": "Surrey",
+                "player_name": "P8",
+                "player_id": "id8",
+                "runs_scored": 5,
+                "balls_faced": 10,
+                "dismissed": True,
+                "wickets_taken": 3,
+                "balls_bowled": 24,
+                "runs_conceded": 48,
+            },
+            # id1 bats in m002 (away match)
+            {
+                "match_id": "m002",
+                "innings": 2,
+                "batting_team": "Lancashire",
+                "player_name": "P1",
+                "player_id": "id1",
+                "runs_scored": 70,
+                "balls_faced": 120,
+                "dismissed": False,
+                "wickets_taken": 0,
+                "balls_bowled": 0,
+                "runs_conceded": 0,
+            },
+            # id1 bats in m003
+            {
+                "match_id": "m003",
+                "innings": 1,
+                "batting_team": "Lancashire",
+                "player_name": "P1",
+                "player_id": "id1",
+                "runs_scored": 12,
+                "balls_faced": 25,
+                "dismissed": True,
+                "wickets_taken": 0,
+                "balls_bowled": 0,
+                "runs_conceded": 0,
+            },
+        ]
+    )
 
 
 # ─────────────────────────────────────────────
 # EloTracker
 # ─────────────────────────────────────────────
+
 
 class TestEloTracker:
     def test_default_rating(self):
@@ -161,28 +239,23 @@ class TestEloTracker:
 # build_player_averages
 # ─────────────────────────────────────────────
 
+
 class TestBuildPlayerAverages:
     def test_returns_dataframe(self, simple_players, simple_matches):
-        match_dates = pd.to_datetime(
-            simple_matches.set_index("match_id")["match_date"]
-        )
+        match_dates = pd.to_datetime(simple_matches.set_index("match_id")["match_date"])
         result = build_player_averages(simple_players, match_dates)
         assert isinstance(result, pd.DataFrame)
 
     def test_no_leakage_first_appearance(self, simple_players, simple_matches):
         """Player should have NaN averages for their first-ever match."""
-        match_dates = pd.to_datetime(
-            simple_matches.set_index("match_id")["match_date"]
-        )
+        match_dates = pd.to_datetime(simple_matches.set_index("match_id")["match_date"])
         avgs = build_player_averages(simple_players, match_dates)
         first_row = avgs[(avgs["player_id"] == "id1") & (avgs["match_id"] == "m001")]
         assert first_row["batting_avg"].isna().all()
 
     def test_averages_computed_from_prior_matches(self, simple_players, simple_matches):
         """By m003, id1 has two prior innings (m001 x2, m002 x1)."""
-        match_dates = pd.to_datetime(
-            simple_matches.set_index("match_id")["match_date"]
-        )
+        match_dates = pd.to_datetime(simple_matches.set_index("match_id")["match_date"])
         avgs = build_player_averages(simple_players, match_dates)
         row = avgs[(avgs["player_id"] == "id1") & (avgs["match_id"] == "m003")]
         assert not row.empty
@@ -191,9 +264,7 @@ class TestBuildPlayerAverages:
         assert abs(row["batting_avg"].iloc[0] - 67.5) < 0.1
 
     def test_bowling_avg_nan_with_no_wickets(self, simple_players, simple_matches):
-        match_dates = pd.to_datetime(
-            simple_matches.set_index("match_id")["match_date"]
-        )
+        match_dates = pd.to_datetime(simple_matches.set_index("match_id")["match_date"])
         avgs = build_player_averages(simple_players, match_dates)
         # id1 is a batter — no wickets taken
         row = avgs[(avgs["player_id"] == "id1") & (avgs["match_id"] == "m003")]
@@ -204,44 +275,80 @@ class TestBuildPlayerAverages:
 # compute_xi_strength
 # ─────────────────────────────────────────────
 
+
 class TestComputeXiStrength:
     def test_returns_dict_with_expected_keys(self):
-        avgs = pd.DataFrame(columns=["player_id", "match_id", "batting_avg",
-                                      "bowling_avg", "innings_count"])
+        avgs = pd.DataFrame(
+            columns=[
+                "player_id",
+                "match_id",
+                "batting_avg",
+                "bowling_avg",
+                "innings_count",
+            ]
+        )
         result = compute_xi_strength([], "m001", avgs, 30.0, 35.0)
         assert "batting_strength" in result
         assert "bowling_strength" in result
 
     def test_empty_xi_uses_divisional_average(self):
-        avgs = pd.DataFrame(columns=["player_id", "match_id", "batting_avg",
-                                      "bowling_avg", "innings_count"])
+        avgs = pd.DataFrame(
+            columns=[
+                "player_id",
+                "match_id",
+                "batting_avg",
+                "bowling_avg",
+                "innings_count",
+            ]
+        )
         result = compute_xi_strength([], "m001", avgs, 30.0, 35.0)
         # With no players, means of empty lists are nan
         assert np.isnan(result["batting_strength"])
 
     def test_unknown_player_uses_divisional_average(self):
-        avgs = pd.DataFrame(columns=["player_id", "match_id", "batting_avg",
-                                      "bowling_avg", "innings_count"])
-        ids  = ["unknown1"] * 11
+        avgs = pd.DataFrame(
+            columns=[
+                "player_id",
+                "match_id",
+                "batting_avg",
+                "bowling_avg",
+                "innings_count",
+            ]
+        )
+        ids = ["unknown1"] * 11
         result = compute_xi_strength(ids, "m001", avgs, 30.0, 35.0)
         assert abs(result["batting_strength"] - 30.0) < 0.01
 
     def test_shrinkage_applied_for_sparse_player(self):
         """A player with 2 innings should be blended towards divisional avg."""
-        avgs = pd.DataFrame([{
-            "player_id": "id1", "match_id": "m001",
-            "batting_avg": 60.0, "bowling_avg": 25.0, "innings_count": 2,
-        }])
+        avgs = pd.DataFrame(
+            [
+                {
+                    "player_id": "id1",
+                    "match_id": "m001",
+                    "batting_avg": 60.0,
+                    "bowling_avg": 25.0,
+                    "innings_count": 2,
+                }
+            ]
+        )
         # weight = 2/5 = 0.4, so blended = 0.4 * 60 + 0.6 * 30 = 42
         result = compute_xi_strength(["id1"], "m001", avgs, 30.0, 35.0)
         assert abs(result["batting_strength"] - 42.0) < 0.1
 
     def test_full_weight_for_experienced_player(self):
         """A player with >= PLAYER_MIN_INNINGS innings gets full weight."""
-        avgs = pd.DataFrame([{
-            "player_id": "id1", "match_id": "m001",
-            "batting_avg": 60.0, "bowling_avg": 25.0, "innings_count": 10,
-        }])
+        avgs = pd.DataFrame(
+            [
+                {
+                    "player_id": "id1",
+                    "match_id": "m001",
+                    "batting_avg": 60.0,
+                    "bowling_avg": 25.0,
+                    "innings_count": 10,
+                }
+            ]
+        )
         result = compute_xi_strength(["id1"], "m001", avgs, 30.0, 35.0)
         assert abs(result["batting_strength"] - 60.0) < 0.1
 
@@ -249,6 +356,7 @@ class TestComputeXiStrength:
 # ─────────────────────────────────────────────
 # build_venue_stats
 # ─────────────────────────────────────────────
+
 
 class TestBuildVenueStats:
     def test_first_match_at_venue_is_nan(self, simple_matches):
@@ -274,6 +382,7 @@ class TestBuildVenueStats:
 # ─────────────────────────────────────────────
 # build_team_form
 # ─────────────────────────────────────────────
+
 
 class TestBuildTeamForm:
     def test_first_match_form_is_nan(self, simple_matches):
@@ -304,6 +413,7 @@ class TestBuildTeamForm:
 # build_features (integration)
 # ─────────────────────────────────────────────
 
+
 class TestBuildFeatures:
     def test_returns_only_decisive_matches(self, simple_matches, simple_players):
         features = build_features(simple_matches, simple_players)
@@ -322,17 +432,27 @@ class TestBuildFeatures:
         m002_diff = features[features["match_id"] == "m002"]["elo_diff"].iloc[0]
         # m001 starts at 0 (both teams at default). After Lancashire win,
         # m002 (Surrey home vs Lancashire away) should reflect updated ratings.
-        assert m001_diff == 0.0          # first ever match — both at default
-        assert m002_diff != 0.0          # ratings have moved after m001
+        assert m001_diff == 0.0  # first ever match — both at default
+        assert m002_diff != 0.0  # ratings have moved after m001
 
     def test_expected_columns_present(self, simple_matches, simple_players):
         features = build_features(simple_matches, simple_players)
         expected = {
-            "match_id", "match_date", "season", "division",
-            "home_team", "away_team", "venue",
-            "elo_diff", "home_won_toss", "home_form", "away_form",
-            "venue_home_win_rate", "batting_strength_diff",
-            "bowling_strength_diff", "home_win",
+            "match_id",
+            "match_date",
+            "season",
+            "division",
+            "home_team",
+            "away_team",
+            "venue",
+            "elo_diff",
+            "home_won_toss",
+            "home_form",
+            "away_form",
+            "venue_home_win_rate",
+            "batting_strength_diff",
+            "bowling_strength_diff",
+            "home_win",
         }
         assert expected.issubset(set(features.columns))
 
@@ -346,10 +466,11 @@ class TestBuildFeatures:
 # run (integration)
 # ─────────────────────────────────────────────
 
+
 class TestRun:
     def test_creates_features_csv(self, tmp_path, simple_matches, simple_players):
         silver = tmp_path / "silver"
-        gold   = tmp_path / "gold"
+        gold = tmp_path / "gold"
         silver.mkdir()
         simple_matches.to_csv(silver / "matches.csv", index=False)
         simple_players.to_csv(silver / "players.csv", index=False)
@@ -373,7 +494,7 @@ class TestRun:
 
     def test_output_has_expected_shape(self, tmp_path, simple_matches, simple_players):
         silver = tmp_path / "silver"
-        gold   = tmp_path / "gold"
+        gold = tmp_path / "gold"
         silver.mkdir()
         simple_matches.to_csv(silver / "matches.csv", index=False)
         simple_players.to_csv(silver / "players.csv", index=False)
