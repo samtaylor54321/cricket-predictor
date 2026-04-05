@@ -299,12 +299,12 @@ def build_team_form(matches_df: pd.DataFrame) -> pd.DataFrame:
         form_records.append(
             {
                 "match_id": row["match_id"],
-                "home_form": home_prior["won"].mean()
-                if len(home_prior) > 0
-                else np.nan,
-                "away_form": away_prior["won"].mean()
-                if len(away_prior) > 0
-                else np.nan,
+                "home_form": (
+                    home_prior["won"].mean() if len(home_prior) > 0 else np.nan
+                ),
+                "away_form": (
+                    away_prior["won"].mean() if len(away_prior) > 0 else np.nan
+                ),
             }
         )
 
@@ -342,9 +342,11 @@ def build_features(
             elo_diffs[mid] = elo.get(row["home_team"]) - elo.get(row["away_team"])
             elo.update(
                 winner=row["winner"],
-                loser=row["away_team"]
-                if row["winner"] == row["home_team"]
-                else row["home_team"],
+                loser=(
+                    row["away_team"]
+                    if row["winner"] == row["home_team"]
+                    else row["home_team"]
+                ),
                 home_team=row["home_team"],
             )
 
