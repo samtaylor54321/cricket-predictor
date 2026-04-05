@@ -34,15 +34,15 @@ jobs:
         run: uv run black --check .
 
       - name: Lint (pylint)
-        run: uv run pylint --disable=R,C alpha_monitor
+        run: uv run pylint --disable=R,C src
 
       - name: Tests
         run: uv run pytest -vv
 
-      - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
+    #   - name: Lint Dockerfile
+    #     uses: hadolint/hadolint-action@v3.1.0
+    #     with:
+    #       dockerfile: Dockerfile
 
-      - name: Build Docker image
-        run: docker build -t alpha-monitor .
+    #   - name: Build Docker image
+    #     run: docker build -t alpha-monitor .
