@@ -37,7 +37,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.feature_engineering import run as run_features
-from src.model import load_model, run as run_model, value_bet
+from src.model import load_model
+from src.model import run as run_model
+from src.model import value_bet
 from src.parse_cricsheet import run as run_parse
 
 logging.basicConfig(

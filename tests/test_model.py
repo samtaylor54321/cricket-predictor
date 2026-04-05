@@ -15,18 +15,9 @@ import pandas as pd
 import pytest
 from sklearn.pipeline import Pipeline
 
-from src.model import (
-    FEATURE_COLS,
-    build_pipeline,
-    kelly_stake,
-    load_model,
-    prepare_training_data,
-    remove_vig,
-    run,
-    save_model,
-    value_bet,
-)
-
+from src.model import (FEATURE_COLS, build_pipeline, kelly_stake, load_model,
+                       prepare_training_data, remove_vig, run, save_model,
+                       value_bet)
 
 # ─────────────────────────────────────────────
 # FIXTURES
