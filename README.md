@@ -15,11 +15,11 @@ Because Bet365 offer draw-no-bet only, draws are excluded from the model entirel
 ```
 cricket-model/
 │
-├── main.py                  # Top-level pipeline runner
+├── pipeline.py                  # Top-level pipeline runner
 │
 ├── src/
 │   ├── __init__.py
-│   ├── parse_cricsheet.py       # Bronze → silver: parse raw JSON files
+│   ├── parse_cricsheet.py      # Bronze → silver: parse raw JSON files
 │   ├── feature_engineering.py  # Silver → gold: build model features  [upcoming]
 │   └── model.py                # Train model and find value bets       [upcoming]
 │
@@ -34,6 +34,8 @@ cricket-model/
 └── tests/
     ├── __init__.py
     └── test_parse_cricsheet.py
+    └── test_feature_engineering.py
+    └── test_model.py
 ```
 
 ---
