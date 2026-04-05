@@ -56,6 +56,7 @@ TRAIN_STEPS = ["parse", "features", "model"]
 # STEP RUNNERS
 # ─────────────────────────────────────────────
 
+
 def step_parse(args: argparse.Namespace):
     run_parse(
         bronze_dir=Path(args.bronze),
@@ -85,17 +86,19 @@ def step_value(args: argparse.Namespace):
     """
     model_path = Path(args.gold) / "model.pkl"
     if not model_path.exists():
-        logger.error(f"No model found at {model_path} — run 'python pipeline.py --step model' first")
+        logger.error(
+            f"No model found at {model_path} — run 'python pipeline.py --step model' first"
+        )
         sys.exit(1)
 
     model = load_model(model_path)
 
     features = {
-        "elo_diff":              args.elo_diff,
-        "home_won_toss":         args.home_won_toss,
-        "home_form":             args.home_form,
-        "away_form":             args.away_form,
-        "venue_home_win_rate":   args.venue_home_win_rate,
+        "elo_diff": args.elo_diff,
+        "home_won_toss": args.home_won_toss,
+        "home_form": args.home_form,
+        "away_form": args.away_form,
+        "venue_home_win_rate": args.venue_home_win_rate,
         "batting_strength_diff": args.batting_strength_diff,
         "bowling_strength_diff": args.bowling_strength_diff,
     }
@@ -113,9 +116,15 @@ def step_value(args: argparse.Namespace):
     logger.info("─" * 50)
     logger.info(f"  {home} vs {away}")
     logger.info("─" * 50)
-    logger.info(f"  Model probs    {home}: {result['model_home_prob']:.1%}  |  {away}: {result['model_away_prob']:.1%}")
-    logger.info(f"  Fair probs     {home}: {result['fair_home_prob']:.1%}  |  {away}: {result['fair_away_prob']:.1%}")
-    logger.info(f"  Edge           {home}: {result['home_edge']:+.1%}  |  {away}: {result['away_edge']:+.1%}")
+    logger.info(
+        f"  Model probs    {home}: {result['model_home_prob']:.1%}  |  {away}: {result['model_away_prob']:.1%}"
+    )
+    logger.info(
+        f"  Fair probs     {home}: {result['fair_home_prob']:.1%}  |  {away}: {result['fair_away_prob']:.1%}"
+    )
+    logger.info(
+        f"  Edge           {home}: {result['home_edge']:+.1%}  |  {away}: {result['away_edge']:+.1%}"
+    )
     logger.info("─" * 50)
 
     if result["value_side"]:
@@ -132,6 +141,7 @@ def step_value(args: argparse.Namespace):
 # ─────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -150,18 +160,18 @@ def main():
     # Data paths
     parser.add_argument("--bronze", default="data/bronze/cricsheet")
     parser.add_argument("--silver", default="data/silver/cricsheet")
-    parser.add_argument("--gold",   default="data/gold")
+    parser.add_argument("--gold", default="data/gold")
 
     # Value bet args (used when --step value)
-    parser.add_argument("--home-team",  default=None)
-    parser.add_argument("--away-team",  default=None)
-    parser.add_argument("--home-odds",  type=float, default=2.00)
-    parser.add_argument("--away-odds",  type=float, default=2.00)
-    parser.add_argument("--elo-diff",              type=float, default=0.0)
-    parser.add_argument("--home-won-toss",         type=float, default=0.0)
-    parser.add_argument("--home-form",             type=float, default=0.5)
-    parser.add_argument("--away-form",             type=float, default=0.5)
-    parser.add_argument("--venue-home-win-rate",   type=float, default=0.5)
+    parser.add_argument("--home-team", default=None)
+    parser.add_argument("--away-team", default=None)
+    parser.add_argument("--home-odds", type=float, default=2.00)
+    parser.add_argument("--away-odds", type=float, default=2.00)
+    parser.add_argument("--elo-diff", type=float, default=0.0)
+    parser.add_argument("--home-won-toss", type=float, default=0.0)
+    parser.add_argument("--home-form", type=float, default=0.5)
+    parser.add_argument("--away-form", type=float, default=0.5)
+    parser.add_argument("--venue-home-win-rate", type=float, default=0.5)
     parser.add_argument("--batting-strength-diff", type=float, default=0.0)
     parser.add_argument("--bowling-strength-diff", type=float, default=0.0)
 
@@ -173,9 +183,9 @@ def main():
 
     steps_to_run = TRAIN_STEPS if args.step == "all" else [args.step]
     step_map = {
-        "parse":    step_parse,
+        "parse": step_parse,
         "features": step_features,
-        "model":    step_model,
+        "model": step_model,
     }
 
     pipeline_start = time.time()
