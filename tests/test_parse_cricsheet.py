@@ -12,12 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from src.parse_cricsheet import (
-    parse_match,
-    parse_outcome,
-    parse_player_performances,
-    run,
-)
+from src.parse_cricsheet import (parse_match, parse_outcome,
+                                 parse_player_performances, run)
 
 # ─────────────────────────────────────────────
 # FIXTURES
