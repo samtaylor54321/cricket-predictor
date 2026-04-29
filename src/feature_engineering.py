@@ -38,7 +38,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 DEFAULT_SILVER = Path("data/silver/cricsheet")
-DEFAULT_GOLD   = Path("data/gold")
+DEFAULT_GOLD = Path("data/gold")
 
 # How many recent decisive matches to use for rolling form
 FORM_WINDOW = 5
@@ -51,14 +51,15 @@ PLAYER_FORM_INNINGS = 10
 PLAYER_MIN_INNINGS = 5
 
 # Elo hyperparameters
-ELO_DEFAULT   = 1500
-ELO_K         = 32
+ELO_DEFAULT = 1500
+ELO_K = 32
 ELO_HOME_BONUS = 50
 
 
 # ─────────────────────────────────────────────
 # ELO ENGINE
 # ─────────────────────────────────────────────
+
 
 class EloTracker:
     """
@@ -89,7 +90,7 @@ class EloTracker:
 
         ea = self.expected(ra + home_bonus, rb)
         self.ratings[winner] = ra + ELO_K * (1.0 - ea)
-        self.ratings[loser]  = rb + ELO_K * (0.0 - (1 - ea))
+        self.ratings[loser] = rb + ELO_K * (0.0 - (1 - ea))
 
     def snapshot(self) -> dict[str, float]:
         return dict(self.ratings)
@@ -98,6 +99,7 @@ class EloTracker:
 # ─────────────────────────────────────────────
 # PLAYER FORM
 # ─────────────────────────────────────────────
+
 
 def build_player_averages(
     players_df: pd.DataFrame,
@@ -127,32 +129,36 @@ def build_player_averages(
 
         for i, row in group.iterrows():
             # Only use innings strictly before this match
-            prior = group[group["match_date"] < row["match_date"]].tail(PLAYER_FORM_INNINGS)
+            prior = group[group["match_date"] < row["match_date"]].tail(
+                PLAYER_FORM_INNINGS
+            )
 
             if len(prior) == 0:
-                batting_avg  = np.nan
-                bowling_avg  = np.nan
+                batting_avg = np.nan
+                bowling_avg = np.nan
                 innings_count = 0
             else:
                 # Batting average: total runs / total dismissals (min 1 to avoid div/0)
-                total_runs       = prior["runs_scored"].sum()
+                total_runs = prior["runs_scored"].sum()
                 total_dismissals = prior["dismissed"].sum()
                 batting_avg = total_runs / max(total_dismissals, 1)
 
                 # Bowling average: runs conceded / wickets taken (nan if no wickets)
-                total_wkts   = prior["wickets_taken"].sum()
+                total_wkts = prior["wickets_taken"].sum()
                 total_conceded = prior["runs_conceded"].sum()
                 bowling_avg = total_conceded / total_wkts if total_wkts > 0 else np.nan
 
                 innings_count = len(prior)
 
-            records.append({
-                "player_id":    player_id,
-                "match_id":     row["match_id"],
-                "batting_avg":  batting_avg,
-                "bowling_avg":  bowling_avg,
-                "innings_count": innings_count,
-            })
+            records.append(
+                {
+                    "player_id": player_id,
+                    "match_id": row["match_id"],
+                    "batting_avg": batting_avg,
+                    "bowling_avg": bowling_avg,
+                    "innings_count": innings_count,
+                }
+            )
 
     return pd.DataFrame(records)
 
@@ -171,8 +177,8 @@ def compute_xi_strength(
     Players with fewer than PLAYER_MIN_INNINGS are shrunk towards
     the divisional average proportionally to how many innings they have.
     """
-    batting_scores  = []
-    bowling_scores  = []
+    batting_scores = []
+    bowling_scores = []
 
     match_avgs = player_avgs[player_avgs["match_id"] == match_id].set_index("player_id")
 
@@ -188,29 +194,38 @@ def compute_xi_strength(
             bowling_scores.append(division_bowling_avg)
             continue
 
-        row          = match_avgs.loc[pid]
+        row = match_avgs.loc[pid]
         # loc can return a Series (multiple rows) if player appears twice — take first
         if isinstance(row, pd.DataFrame):
             row = row.iloc[0]
-        n            = int(row["innings_count"])
-        weight       = min(n / PLAYER_MIN_INNINGS, 1.0)  # 0→1 as innings accumulate
+        n = int(row["innings_count"])
+        weight = min(n / PLAYER_MIN_INNINGS, 1.0)  # 0→1 as innings accumulate
 
-        bat_raw  = row["batting_avg"]  if not np.isnan(row["batting_avg"])  else division_batting_avg
-        bowl_raw = row["bowling_avg"]  if not np.isnan(row["bowling_avg"])  else division_bowling_avg
+        bat_raw = (
+            row["batting_avg"]
+            if not np.isnan(row["batting_avg"])
+            else division_batting_avg
+        )
+        bowl_raw = (
+            row["bowling_avg"]
+            if not np.isnan(row["bowling_avg"])
+            else division_bowling_avg
+        )
 
         # Shrink towards divisional average when sample is thin
-        batting_scores.append(weight * bat_raw  + (1 - weight) * division_batting_avg)
+        batting_scores.append(weight * bat_raw + (1 - weight) * division_batting_avg)
         bowling_scores.append(weight * bowl_raw + (1 - weight) * division_bowling_avg)
 
     return {
-        "batting_strength":  np.mean(batting_scores[:6]),   # top 6 batters
-        "bowling_strength":  np.mean(bowling_scores[-5:]),  # last 5 (bowlers bat lower)
+        "batting_strength": np.mean(batting_scores[:6]),  # top 6 batters
+        "bowling_strength": np.mean(bowling_scores[-5:]),  # last 5 (bowlers bat lower)
     }
 
 
 # ─────────────────────────────────────────────
 # VENUE STATS
 # ─────────────────────────────────────────────
+
 
 def build_venue_stats(matches_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -225,10 +240,9 @@ def build_venue_stats(matches_df: pd.DataFrame) -> pd.DataFrame:
     venue_win_rate = {}
 
     for i, row in decisive.iterrows():
-        venue   = row["venue"]
-        prior   = decisive[
-            (decisive["venue"] == venue) &
-            (decisive["match_date"] < row["match_date"])
+        venue = row["venue"]
+        prior = decisive[
+            (decisive["venue"] == venue) & (decisive["match_date"] < row["match_date"])
         ]
         if len(prior) == 0:
             venue_win_rate[row["match_id"]] = np.nan
@@ -241,6 +255,7 @@ def build_venue_stats(matches_df: pd.DataFrame) -> pd.DataFrame:
 # ─────────────────────────────────────────────
 # ROLLING FORM
 # ─────────────────────────────────────────────
+
 
 def build_team_form(matches_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -255,35 +270,43 @@ def build_team_form(matches_df: pd.DataFrame) -> pd.DataFrame:
     # Build a flat record of (team, date, won) for every decisive match
     team_results: list[dict] = []
     for _, row in decisive.iterrows():
-        team_results.append({
-            "team": row["home_team"],
-            "match_date": row["match_date"],
-            "won": float(row["home_win"]),
-        })
-        team_results.append({
-            "team": row["away_team"],
-            "match_date": row["match_date"],
-            "won": 1.0 - float(row["home_win"]),
-        })
+        team_results.append(
+            {
+                "team": row["home_team"],
+                "match_date": row["match_date"],
+                "won": float(row["home_win"]),
+            }
+        )
+        team_results.append(
+            {
+                "team": row["away_team"],
+                "match_date": row["match_date"],
+                "won": 1.0 - float(row["home_win"]),
+            }
+        )
     tr = pd.DataFrame(team_results).sort_values(["team", "match_date"])
 
     form_records = []
     for _, row in decisive.iterrows():
         home_prior = tr[
-            (tr["team"] == row["home_team"]) &
-            (tr["match_date"] < row["match_date"])
+            (tr["team"] == row["home_team"]) & (tr["match_date"] < row["match_date"])
         ].tail(FORM_WINDOW)
 
         away_prior = tr[
-            (tr["team"] == row["away_team"]) &
-            (tr["match_date"] < row["match_date"])
+            (tr["team"] == row["away_team"]) & (tr["match_date"] < row["match_date"])
         ].tail(FORM_WINDOW)
 
-        form_records.append({
-            "match_id":  row["match_id"],
-            "home_form": home_prior["won"].mean() if len(home_prior) > 0 else np.nan,
-            "away_form": away_prior["won"].mean() if len(away_prior) > 0 else np.nan,
-        })
+        form_records.append(
+            {
+                "match_id": row["match_id"],
+                "home_form": (
+                    home_prior["won"].mean() if len(home_prior) > 0 else np.nan
+                ),
+                "away_form": (
+                    away_prior["won"].mean() if len(away_prior) > 0 else np.nan
+                ),
+            }
+        )
 
     return pd.DataFrame(form_records)
 
@@ -291,6 +314,7 @@ def build_team_form(matches_df: pd.DataFrame) -> pd.DataFrame:
 # ─────────────────────────────────────────────
 # MAIN FEATURE BUILD
 # ─────────────────────────────────────────────
+
 
 def build_features(
     matches_df: pd.DataFrame,
@@ -317,9 +341,13 @@ def build_features(
         if row["result_type"] == "decisive":
             elo_diffs[mid] = elo.get(row["home_team"]) - elo.get(row["away_team"])
             elo.update(
-                winner    = row["winner"],
-                loser     = row["away_team"] if row["winner"] == row["home_team"] else row["home_team"],
-                home_team = row["home_team"],
+                winner=row["winner"],
+                loser=(
+                    row["away_team"]
+                    if row["winner"] == row["home_team"]
+                    else row["home_team"]
+                ),
+                home_team=row["home_team"],
             )
 
     decisive["elo_diff"] = decisive["match_id"].map(elo_diffs)
@@ -337,9 +365,11 @@ def build_features(
     player_avgs = build_player_averages(players_df, match_dates)
 
     # Divisional averages as fallback for sparse players
-    div_batting_avg  = players_df["runs_scored"].sum() / max(players_df["dismissed"].sum(), 1)
-    div_bowling_avg  = (
-        players_df["runs_conceded"].sum() / max(players_df["wickets_taken"].sum(), 1)
+    div_batting_avg = players_df["runs_scored"].sum() / max(
+        players_df["dismissed"].sum(), 1
+    )
+    div_bowling_avg = players_df["runs_conceded"].sum() / max(
+        players_df["wickets_taken"].sum(), 1
     )
 
     xi_rows = []
@@ -348,31 +378,46 @@ def build_features(
         away_ids = [p for p in row["away_player_ids"].split("|") if p]
 
         home_strength = compute_xi_strength(
-            home_ids, row["match_id"], player_avgs,
-            div_batting_avg, div_bowling_avg,
+            home_ids,
+            row["match_id"],
+            player_avgs,
+            div_batting_avg,
+            div_bowling_avg,
         )
         away_strength = compute_xi_strength(
-            away_ids, row["match_id"], player_avgs,
-            div_batting_avg, div_bowling_avg,
+            away_ids,
+            row["match_id"],
+            player_avgs,
+            div_batting_avg,
+            div_bowling_avg,
         )
 
-        xi_rows.append({
-            "match_id":              row["match_id"],
-            "home_batting_strength": home_strength["batting_strength"],
-            "home_bowling_strength": home_strength["bowling_strength"],
-            "away_batting_strength": away_strength["batting_strength"],
-            "away_bowling_strength": away_strength["bowling_strength"],
-            "batting_strength_diff": home_strength["batting_strength"] - away_strength["batting_strength"],
-            "bowling_strength_diff": home_strength["bowling_strength"] - away_strength["bowling_strength"],
-        })
+        xi_rows.append(
+            {
+                "match_id": row["match_id"],
+                "home_batting_strength": home_strength["batting_strength"],
+                "home_bowling_strength": home_strength["bowling_strength"],
+                "away_batting_strength": away_strength["batting_strength"],
+                "away_bowling_strength": away_strength["bowling_strength"],
+                "batting_strength_diff": home_strength["batting_strength"]
+                - away_strength["batting_strength"],
+                "bowling_strength_diff": home_strength["bowling_strength"]
+                - away_strength["bowling_strength"],
+            }
+        )
 
-    xi_df   = pd.DataFrame(xi_rows)
+    xi_df = pd.DataFrame(xi_rows)
     decisive = decisive.merge(xi_df, on="match_id", how="left")
 
     # ── Assemble final feature set ────────────────────────────────────
     feature_cols = [
-        "match_id", "match_date", "season", "division",
-        "home_team", "away_team", "venue",
+        "match_id",
+        "match_date",
+        "season",
+        "division",
+        "home_team",
+        "away_team",
+        "venue",
         # Features
         "elo_diff",
         "home_won_toss",
@@ -392,25 +437,30 @@ def build_features(
 # RUN
 # ─────────────────────────────────────────────
 
+
 def run(
     silver_dir: Path = DEFAULT_SILVER,
-    gold_dir:   Path = DEFAULT_GOLD,
+    gold_dir: Path = DEFAULT_GOLD,
 ) -> pd.DataFrame:
     """
     Load silver CSVs, build features, write gold CSV.
     Returns the features DataFrame.
     """
     silver_dir = Path(silver_dir)
-    gold_dir   = Path(gold_dir)
+    gold_dir = Path(gold_dir)
     gold_dir.mkdir(parents=True, exist_ok=True)
 
     matches_path = silver_dir / "matches.csv"
     players_path = silver_dir / "players.csv"
 
     if not matches_path.exists():
-        raise FileNotFoundError(f"matches.csv not found in {silver_dir} — run parse step first")
+        raise FileNotFoundError(
+            f"matches.csv not found in {silver_dir} — run parse step first"
+        )
     if not players_path.exists():
-        raise FileNotFoundError(f"players.csv not found in {silver_dir} — run parse step first")
+        raise FileNotFoundError(
+            f"players.csv not found in {silver_dir} — run parse step first"
+        )
 
     logger.info(f"Loading silver data from {silver_dir}")
     matches_df = pd.read_csv(matches_path)
@@ -440,11 +490,14 @@ def run(
 
 if __name__ == "__main__":
     import argparse
+
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-    parser = argparse.ArgumentParser(description="Build model features from silver layer")
+    parser = argparse.ArgumentParser(
+        description="Build model features from silver layer"
+    )
     parser.add_argument("--silver", type=Path, default=DEFAULT_SILVER)
-    parser.add_argument("--gold",   type=Path, default=DEFAULT_GOLD)
+    parser.add_argument("--gold", type=Path, default=DEFAULT_GOLD)
     args = parser.parse_args()
 
     run(silver_dir=args.silver, gold_dir=args.gold)

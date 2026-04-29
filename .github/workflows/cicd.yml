@@ -1,0 +1,48 @@
+name: Cricket Predictor CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        run: pip install --no-cache-dir uv
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Check import order (isort)
+        run: uv run isort . --check-only
+
+      - name: Format check (black)
+        run: uv run black --check .
+
+      - name: Lint (pylint)
+        run: uv run pylint --disable=R,C src
+
+      - name: Tests
+        run: uv run pytest -vv
+
+    #   - name: Lint Dockerfile
+    #     uses: hadolint/hadolint-action@v3.1.0
+    #     with:
+    #       dockerfile: Dockerfile
+
+    #   - name: Build Docker image
+    #     run: docker build -t alpha-monitor .

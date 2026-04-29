@@ -39,7 +39,7 @@ from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_GOLD      = Path("data/gold")
+DEFAULT_GOLD = Path("data/gold")
 DEFAULT_MODEL_PATH = Path("data/gold/model.pkl")
 
 # Features used in training — order matters for inference
@@ -63,6 +63,7 @@ KELLY_FRACTION = 0.25
 # ─────────────────────────────────────────────
 # TRAINING
 # ─────────────────────────────────────────────
+
 
 def prepare_training_data(features_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     """
@@ -102,10 +103,12 @@ def build_pipeline() -> Pipeline:
     )
     calibrated = CalibratedClassifierCV(base, method="isotonic", cv=5)
 
-    return Pipeline([
-        ("scaler",    StandardScaler()),
-        ("classifier", calibrated),
-    ])
+    return Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            ("classifier", calibrated),
+        ]
+    )
 
 
 def evaluate(model: Pipeline, X: pd.DataFrame, y: pd.Series) -> dict:
@@ -116,22 +119,28 @@ def evaluate(model: Pipeline, X: pd.DataFrame, y: pd.Series) -> dict:
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
     accuracy_scores = cross_val_score(model, X, y, cv=cv, scoring="accuracy")
-    brier_scores    = cross_val_score(model, X, y, cv=cv, scoring="neg_brier_score")
-    roc_scores      = cross_val_score(model, X, y, cv=cv, scoring="roc_auc")
+    brier_scores = cross_val_score(model, X, y, cv=cv, scoring="neg_brier_score")
+    roc_scores = cross_val_score(model, X, y, cv=cv, scoring="roc_auc")
 
     metrics = {
-        "n_samples":        int(len(y)),
-        "home_win_rate":    float(y.mean()),
+        "n_samples": int(len(y)),
+        "home_win_rate": float(y.mean()),
         "cv_accuracy_mean": float(accuracy_scores.mean()),
-        "cv_accuracy_std":  float(accuracy_scores.std()),
-        "cv_brier_mean":    float(-brier_scores.mean()),   # lower is better
-        "cv_roc_auc_mean":  float(roc_scores.mean()),
-        "cv_roc_auc_std":   float(roc_scores.std()),
+        "cv_accuracy_std": float(accuracy_scores.std()),
+        "cv_brier_mean": float(-brier_scores.mean()),  # lower is better
+        "cv_roc_auc_mean": float(roc_scores.mean()),
+        "cv_roc_auc_std": float(roc_scores.std()),
     }
 
-    logger.info(f"  Accuracy  : {metrics['cv_accuracy_mean']:.1%} ± {metrics['cv_accuracy_std']:.1%}")
-    logger.info(f"  ROC AUC   : {metrics['cv_roc_auc_mean']:.3f} ± {metrics['cv_roc_auc_std']:.3f}")
-    logger.info(f"  Brier     : {metrics['cv_brier_mean']:.3f}  (baseline: {y.mean() * (1 - y.mean()):.3f})")
+    logger.info(
+        f"  Accuracy  : {metrics['cv_accuracy_mean']:.1%} ± {metrics['cv_accuracy_std']:.1%}"
+    )
+    logger.info(
+        f"  ROC AUC   : {metrics['cv_roc_auc_mean']:.3f} ± {metrics['cv_roc_auc_std']:.3f}"
+    )
+    logger.info(
+        f"  Brier     : {metrics['cv_brier_mean']:.3f}  (baseline: {y.mean() * (1 - y.mean()):.3f})"
+    )
 
     return metrics
 
@@ -139,6 +148,7 @@ def evaluate(model: Pipeline, X: pd.DataFrame, y: pd.Series) -> dict:
 # ─────────────────────────────────────────────
 # PERSISTENCE
 # ─────────────────────────────────────────────
+
 
 def save_model(model: Pipeline, path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -156,6 +166,7 @@ def load_model(path: Path = DEFAULT_MODEL_PATH) -> Pipeline:
 # VALUE BET FINDER
 # ─────────────────────────────────────────────
 
+
 def remove_vig(home_odds: float, away_odds: float) -> tuple[float, float]:
     """
     Convert bookmaker decimal odds to vig-free fair probabilities.
@@ -163,16 +174,18 @@ def remove_vig(home_odds: float, away_odds: float) -> tuple[float, float]:
     """
     raw_home = 1 / home_odds
     raw_away = 1 / away_odds
-    total    = raw_home + raw_away
+    total = raw_home + raw_away
     return raw_home / total, raw_away / total
 
 
-def kelly_stake(prob: float, decimal_odds: float, fraction: float = KELLY_FRACTION) -> float:
+def kelly_stake(
+    prob: float, decimal_odds: float, fraction: float = KELLY_FRACTION
+) -> float:
     """
     Fractional Kelly criterion stake as a proportion of bankroll.
     Returns 0 if the bet has no edge.
     """
-    b     = decimal_odds - 1
+    b = decimal_odds - 1
     kelly = (b * prob - (1 - prob)) / b
     return max(0.0, kelly * fraction)
 
@@ -220,38 +233,38 @@ def value_bet(
 
     # Determine best value side
     value_side = None
-    best_edge  = min_edge  # only flag if edge exceeds threshold
+    best_edge = min_edge  # only flag if edge exceeds threshold
 
     if home_edge >= best_edge:
         value_side = "home"
-        best_edge  = home_edge
+        best_edge = home_edge
     if away_edge >= best_edge:
         value_side = "away"
 
     if value_side == "home":
         stake = kelly_stake(model_home_prob, home_odds)
-        ev    = model_home_prob * (home_odds - 1) - (1 - model_home_prob)
-        odds  = home_odds
+        ev = model_home_prob * (home_odds - 1) - (1 - model_home_prob)
+        odds = home_odds
     elif value_side == "away":
         stake = kelly_stake(model_away_prob, away_odds)
-        ev    = model_away_prob * (away_odds - 1) - (1 - model_away_prob)
-        odds  = away_odds
+        ev = model_away_prob * (away_odds - 1) - (1 - model_away_prob)
+        odds = away_odds
     else:
         stake = 0.0
-        ev    = 0.0
-        odds  = None
+        ev = 0.0
+        odds = None
 
     return {
         "model_home_prob": round(model_home_prob, 3),
         "model_away_prob": round(model_away_prob, 3),
-        "fair_home_prob":  round(fair_home_prob,  3),
-        "fair_away_prob":  round(fair_away_prob,  3),
-        "home_edge":       round(home_edge, 3),
-        "away_edge":       round(away_edge, 3),
-        "value_side":      value_side,
-        "odds":            odds,
-        "kelly_stake":     round(stake, 3),
-        "expected_value":  round(ev, 3),
+        "fair_home_prob": round(fair_home_prob, 3),
+        "fair_away_prob": round(fair_away_prob, 3),
+        "home_edge": round(home_edge, 3),
+        "away_edge": round(away_edge, 3),
+        "value_side": value_side,
+        "odds": odds,
+        "kelly_stake": round(stake, 3),
+        "expected_value": round(ev, 3),
     }
 
 
@@ -259,20 +272,23 @@ def value_bet(
 # RUN
 # ─────────────────────────────────────────────
 
+
 def run(
-    gold_dir:    Path = DEFAULT_GOLD,
-    model_path:  Path = DEFAULT_MODEL_PATH,
+    gold_dir: Path = DEFAULT_GOLD,
+    model_path: Path = DEFAULT_MODEL_PATH,
 ) -> Pipeline:
     """
     Load gold features, train model, evaluate, save.
     Returns the fitted model.
     """
-    gold_dir   = Path(gold_dir)
+    gold_dir = Path(gold_dir)
     model_path = Path(model_path)
 
     features_path = gold_dir / "features.csv"
     if not features_path.exists():
-        raise FileNotFoundError(f"features.csv not found in {gold_dir} — run feature step first")
+        raise FileNotFoundError(
+            f"features.csv not found in {gold_dir} — run feature step first"
+        )
 
     logger.info(f"Loading features from {features_path}")
     features_df = pd.read_csv(features_path)
@@ -305,10 +321,11 @@ def run(
 
 if __name__ == "__main__":
     import argparse
+
     logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     parser = argparse.ArgumentParser(description="Train the county championship model")
-    parser.add_argument("--gold",  type=Path, default=DEFAULT_GOLD)
+    parser.add_argument("--gold", type=Path, default=DEFAULT_GOLD)
     parser.add_argument("--model", type=Path, default=DEFAULT_MODEL_PATH)
     args = parser.parse_args()
 
